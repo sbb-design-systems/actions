@@ -1,0 +1,89 @@
+name: Backport
+description: Backports commits to given target branches
+
+on:
+  workflow_call:
+    secrets:
+      client-id:
+        required: true
+      private-key:
+        required: true
+
+jobs:
+  selection:
+    runs-on: ubuntu-slim
+    outputs:
+      branches: ${{ steps.branch_selection.outputs.result }}
+    steps:
+      - uses: actions/github-script@v9
+        id: branch_selection
+        with:
+          env:
+            LABELS: ${{ join(github.event.pull_request.labels.*.name, '◬') }}
+          result-encoding: string
+          script: |
+            return process.env.LABELS.split('◬').filter((l) => l.startsWith('target:'));
+
+  backport:
+    runs-on: ubuntu-slim
+    outputs:
+      failed_branches: ${{ steps.update_failed_branches.outputs.failed_branches }}
+    strategy:
+      matrix:
+        label: needs.selection.outputs.branches
+
+    steps:
+      - name: Get token
+        id: get_token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ secrets.client-id }}
+          private-key: ${{ secrets.private-key }}
+      - name: Get branch name from label
+        id: branch_name
+        run: |
+          echo "branch=$(echo ${{ matrix.label }} | sed -n 's/target: \([0-9]*.x\).*/\1/p')" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v6
+        if: steps.branch_name.outputs.branch
+        with:
+          token: ${{ steps.get_token.outputs.token }}
+          fetch-depth: 0
+
+      - name: Cherry-pick changes into ${{ steps.branch_name.outputs.branch }}
+        if: steps.branch_name.outputs.branch
+        run: |
+          git checkout ${{ steps.branch_name.outputs.branch }}
+          git -c user.name="github-actions" -c user.email="github-actions@github.com" cherry-pick ${{ github.sha }}
+          git push
+
+      - name: Update failed branches
+        if: ${{ failure() }}
+        id: update_failed_branches
+        run: |
+          echo "failed_branches=$(echo ${{ steps.branch_name.outputs.branch }} ${{ steps.update_failed_branches.outputs.failed_branches}})" >> $GITHUB_OUTPUT
+
+  report:
+    runs-on: ubuntu-slim
+    needs: backport
+    if: always() && needs.backport.result == 'failure' &&
+      github.event.pull_request.user.login != 'renovate[bot]' &&
+      needs.backport.outputs.failed_branches
+
+    steps:
+      - uses: actions/github-script@v9
+        with:
+          env:
+            BRANCHES: ${{ needs.backport.outputs.failed_branches }}
+          script: |
+            const body = `
+              ⚠ Could not backport pull request into ${process.env.BRANCHES}!
+              Please manually backport the change via git cherry pick.
+              [ ] Completed
+            `;
+            github.rest.issues.createComment({
+              issue_number: github.event.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body
+            });
