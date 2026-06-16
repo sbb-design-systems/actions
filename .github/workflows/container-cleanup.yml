@@ -67,9 +67,9 @@ jobs:
     steps:
       - uses: actions/github-script@v9
         id: repo
+        env:
+          REPOS: ${{ input.names }}
         with:
-          env:
-            REPOS: ${{ input.names }}
           result-encoding: string
           script: |
             return process.env.REPOS.split(',').map((r) => r.trim()).concat('docs');
