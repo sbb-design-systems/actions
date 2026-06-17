@@ -68,7 +68,7 @@ jobs:
       - uses: actions/github-script@v9
         id: repo
         env:
-          REPOS: ${{ input.names }}
+          REPOS: ${{ inputs.names }}
         with:
           result-encoding: string
           script: |
