@@ -72,14 +72,14 @@ jobs:
         with:
           result-encoding: string
           script: |
-            return process.env.REPOS.split(',').map((r) => r.trim()).concat('docs');
+            return JSON.stringify(process.env.REPOS.split(',').map((r) => r.trim()).concat('docs'));
 
   untagged-container-cleanup:
     runs-on: ubuntu-latest
     needs: repo-selection
     strategy:
       matrix:
-        repo: needs.repo-selection.outputs.repos
+        repo: ${{ fromJSON(needs.repo-selection.outputs.repos) }}
     steps:
       - uses: actions/delete-package-versions@v5
         with:
