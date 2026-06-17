@@ -5,7 +5,6 @@ on:
   workflow_call:
     inputs:
       names:
-        required: true
         type: string
         default: docs-preview
 
