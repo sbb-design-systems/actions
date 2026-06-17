@@ -1,0 +1,57 @@
+name: Build Container
+inputs:
+  repository:
+    type: string
+    required: true
+  tag:
+    type: string
+    required: true
+  alias:
+    type: string
+
+runs:
+  using: composite
+  steps:
+    - name: Create $HOME/.local/bin
+      run: mkdir -p "$HOME/.local/bin"
+      shell: bash
+    - name: Cache mint
+      id: cache-mint
+      uses: actions/cache@v5
+      with:
+        path: /home/runner/.local/bin
+        key: ${{ runner.os }}-mint
+    - name: Setup mint
+      if: steps.cache-mint.outputs.cache-hit != 'true'
+      run: |
+        mkdir -p "$HOME/.local/bin"
+        cd "$HOME/.local/bin"
+
+        # Get the current released tag_name
+        VER=$(curl -sL https://api.github.com/repos/mintoolkit/mint/releases \
+          | grep tag_name | head -n1 | cut -d'"' -f4)
+        curl -L -o mint.tar.gz "https://github.com/mintoolkit/mint/releases/download/${VER}/dist_linux.tar.gz"
+        tar -xvf mint.tar.gz --strip-components 1
+
+        echo "Installed mint:${VER}"
+      shell: bash
+    - name: 'Build and publish container image'
+      run: |
+        echo "${{ github.token }}" | docker login ghcr.io -u $ --password-stdin
+        docker build --tag ${{ env.IMAGE_REPO_DOCS }}:$TAG .
+        mint slim \
+          --target ${{ env.IMAGE_REPO_DOCS }}:$TAG \
+          --tag ${{ env.IMAGE_REPO_DOCS }}:$TAG \
+          --preserve-path /usr/share/nginx/html \
+          --include-new false
+        docker push ${{ env.IMAGE_REPO_DOCS }}:$TAG
+        if [[ $ALIAS != "" ]]; then
+          docker tag ${{ env.IMAGE_REPO_DOCS }}:$TAG ${{ env.IMAGE_REPO_DOCS }}:$ALIAS
+          docker push ${{ env.IMAGE_REPO_DOCS }}:$ALIAS
+        fi
+        docker image list
+      env:
+        DOCKER_BUILDKIT: 1
+        TAG: ${{ inputs.tag }}
+        ALIAS: ${{ inputs.alias }}
+

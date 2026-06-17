@@ -22,7 +22,7 @@ jobs:
             LABELS: ${{ join(github.event.pull_request.labels.*.name, '◬') }}
           result-encoding: string
           script: |
-            return process.env.LABELS.split('◬').filter((l) => l.startsWith('target:'));
+            return JSON.stringify(process.env.LABELS.split('◬').filter((l) => l.startsWith('target:')));
 
   backport:
     runs-on: ubuntu-slim
@@ -30,7 +30,7 @@ jobs:
       failed_branches: ${{ steps.update_failed_branches.outputs.failed_branches }}
     strategy:
       matrix:
-        label: needs.selection.outputs.branches
+        label: ${{ fromJSON(needs.selection.outputs.branches) }}
 
     steps:
       - name: Get token

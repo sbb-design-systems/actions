@@ -1,0 +1,106 @@
+name: Review Labelling
+description: Add or remove labels related to reviews
+
+on:
+  workflow_call:
+    secrets:
+      GITHUB_TOKEN:
+        required: true
+
+env:
+  PEER_REQUIRED: 'pr: peer review required'
+  PEER_APPROVED: 'pr: peer review approved'
+  LEAD_REQUIRED: 'pr: lead review required'
+  LEAD_APPROVED: 'pr: lead review approved'
+  UX_REQUIRED: 'pr: ux review required'
+  UX_APPROVED: 'pr: ux review approved'
+  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  # Workaround for the limitation of being unable to use env in job if block.
+  # https://github.com/actions/runner/issues/1189
+  pr-check:
+    runs-on: ubuntu-slim
+    if: github.event_name == 'pull_request_target'
+    outputs:
+      peer_required: ${{ steps.env.outputs.peer_required }}
+      peer_approved: ${{ steps.env.outputs.peer_approved }}
+    steps:
+      - name: Copy variables
+        id: env
+        run: |
+          echo "peer_required=$PEER_REQUIRED" >> "${GITHUB_OUTPUT}"
+          echo "peer_approved=$PEER_APPROVED" >> "${GITHUB_OUTPUT}"
+
+  peer-review-required:
+    runs-on: ubuntu-slim
+    needs: pr-check
+    if: >
+      !github.event.pull_request.draft &&
+      !contains(github.event.pull_request.title, '[WIP]') &&
+      !contains(github.event.pull_request.labels.*.name, needs.pr-check.outputs.peer_approved)
+    steps:
+      - name: Assign peer review required label
+        run: gh issue edit ${{ github.event.number }} --repo ${{ github.repository }} --add-label "$PEER_REQUIRED"
+
+  peer-review-not-required:
+    runs-on: ubuntu-slim
+    needs: pr-check
+    if: >
+      (
+        github.event.pull_request.draft ||
+        contains(github.event.pull_request.title, '[WIP]') ||
+        github.event.action == 'closed'
+      ) &&
+      contains(github.event.pull_request.labels.*.name, needs.pr-check.outputs.peer_required)
+    steps:
+      - name: Remove peer review required label
+        run: gh issue edit ${{ github.event.number }} --repo ${{ github.repository }} --remove-label "$PEER_REQUIRED"
+
+  approved:
+    runs-on: ubuntu-slim
+    if: github.event_name == 'pull_request_review' && github.event.review.state == 'APPROVED'
+    steps:
+      - name: Resolve team membership
+        id: team
+        run: |
+          ghTeamMembership() {
+            local result=$(
+              gh api -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' \
+              /orgs/${{ github.repository_owner }}/teams/$1/memberships/$2 \
+              | jq '(.role + "." + .state)'
+            )
+            echo "$result"
+          }
+          # echo "core-member=$(ghTeamMembership 'core' '${{ github.actor }}')" >> "$GITHUB_OUTPUT"
+          # echo "ux-member=$(ghTeamMembership 'UX' '${{ github.actor }}')" >> "$GITHUB_OUTPUT"
+          # Hard coding this, until the repositories are moved into the new organization.
+          actor="${{ github.actor }}"
+          if [[ "$actor" == "jeripeierSBB" ]] || [[ "$actor" == "kyubisation" ]]; then
+            echo "core-member=maintainer.active" >> "$GITHUB_OUTPUT"
+            echo "ux-member=." >> "$GITHUB_OUTPUT"
+          elif [[ "$actor" == "DavideMininni-Fincons" ]] || [[ "$actor" == "MarioCastigliano" ]] || [[ "$actor" == "TomMenga" ]]; then
+            echo "core-member=member.active" >> "$GITHUB_OUTPUT"
+            echo "ux-member=." >> "$GITHUB_OUTPUT"
+          elif [[ "$actor" == "mcilurzo" ]]; then
+            echo "core-member=." >> "$GITHUB_OUTPUT"
+            echo "ux-member=member.active" >> "$GITHUB_OUTPUT"
+          else
+            echo "core-member=." >> "$GITHUB_OUTPUT"
+            echo "ux-member=." >> "$GITHUB_OUTPUT"
+          fi
+      - name: Assign peer review approved label
+        if: steps.team.outputs.core-member == 'member.active'
+        run: |
+          gh issue edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --remove-label "$PEER_REQUIRED"
+          gh issue edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --add-label "$PEER_APPROVED"
+      - name: Assign lead review approved label
+        if: steps.team.outputs.core-member == 'maintainer.active'
+        run: |
+          gh issue edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --remove-label "$LEAD_REQUIRED"
+          gh issue edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --add-label "$LEAD_APPROVED"
+      - name: Assign ux review approved label
+        if: steps.team.outputs.ux-member == 'maintainer.active' || steps.team.outputs.ux-member == 'member.active'
+        run: |
+          gh issue edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --remove-label "$UX_REQUIRED"
+          gh issue edit ${{ github.event.pull_request.number }} --repo ${{ github.repository }} --add-label "$UX_APPROVED"

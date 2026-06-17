@@ -1,0 +1,117 @@
+name: Release Please
+inputs:
+  teams-webhook:
+    type: string
+    required: true
+  dev-packages:
+    type: boolean
+    default: false
+
+# Documentation:
+# https://github.com/googleapis/release-please
+# https://github.com/googleapis/release-please-action
+# https://github.com/googleapis/release-please/blob/main/docs/customizing.md
+
+runs:
+  using: "composite"
+  steps:
+    - uses: googleapis/release-please-action@v5
+      id: release
+      with:
+        target-branch: ${{ github.ref_name }}
+    - name: Release Info
+      run: echo "$RELEASE_OUTPUT"
+      shell: bash
+      env:
+        RELEASE_OUTPUT: ${{ toJSON(steps.release.outputs) }}
+    - name: 'Release: Determine version'
+      id: version
+      run: echo "version=$([[ "$VERSION" != "" ]] && echo "$VERSION" || echo "rev-$GITHUB_SHA")" >> $GITHUB_OUTPUT
+      shell: bash
+      env:
+        VERSION: ${{ steps.release.outputs.version }}
+
+    - name: Get token
+      id: get_token
+      uses: actions/create-github-app-token@v3
+      with:
+        client-id: ${{ secrets.client-id }}
+        private-key: ${{ secrets.private-key }}
+    - uses: actions/checkout@v6
+      with:
+        fetch-depth: 0
+        token: ${{ steps.get_token.outputs.token }}
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .nvmrc
+        cache: yarn
+        registry-url: 'https://registry.npmjs.org'
+        scope: sbb-esta
+    - run: yarn install --frozen-lockfile --non-interactive
+      shell: bash
+
+    - name: Run build
+      run: yarn build
+      shell: bash
+      env:
+        STORYBOOK_COMPONENTS_VERSION: ${{ steps.version.outputs.version }}
+    - name: Remove files with forbidden extensions
+      run: node ${{ github.action_path }}/clean-docs-files.mts
+
+    - name: Update npm
+      run: npm install --global npm@latest
+      shell: bash
+    - name: Publish packages
+      run: node ${{ github.action_path }}/publish.mts
+      shell: bash
+      env:
+        VERSION: ${{ steps.release.outputs.version }}
+        DEV_PACKAGES: ${{ inputs.dev-packages }}
+        
+    - uses: actions/github-script@v9
+      id: container-alias
+      env:
+        VERSION: ${{ steps.release.outputs.version }}
+      with:
+        result-encoding: string
+        script: |
+          const version = process.env.VERSION;
+          if (version.includes('-')) {
+            return '';
+          }
+          const { data: branches } = await github.rest.repos.listBranches({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            protected: true,
+          });
+          const latestMajor = branches.map((b) => b.name).filter((b) => b.endsWith('.x')).map((b) => parseInt(b.split('.')[0])).sort().at(-1);
+
+
+    - uses: ../build-container
+      if: ${{ steps.release.outputs.release_created }}
+      with:
+        repository: ghcr.io/${{ github.repository }}/docs
+        tag: ${{ steps.release.outputs.version }}
+        alias: ${{ steps.container-alias.outputs.result }}
+
+    - name: Send Teams webhook
+      if: ${{ steps.release.outputs.release_created }}
+      run: |
+        node ${{ github.action_path }}/teams-webhook.ts
+      shell: bash
+      env:
+        RELEASE_TAG: ${{ steps.release.outputs.version }}
+        TEAMS_WEBHOOK: ${{ inputs.teams-webhook }}
+
+    - name: Apply CHANGELOG.md into ${{ github.event.repository.default_branch }}
+      if: ${{ steps.release.outputs.release_created && github.ref_name != 'main' }}
+      run: |
+        node ${{ github.action_path }}/changelog.ts extract
+        git config user.email "github-actions@github.com"
+        git config user.name "github-actions"
+        git checkout ${{ github.event.repository.default_branch }}
+        git pull
+        node ${{ github.action_path }}/changelog.ts insert
+        git commit -a -m "chore: update changelog"
+        git push
+      shell: bash
