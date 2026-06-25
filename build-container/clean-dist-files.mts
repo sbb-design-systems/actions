@@ -2,9 +2,9 @@ import { readdirSync, unlinkSync } from 'node:fs';
 import { extname, join } from 'node:path';
 
 const allowedExtensions =
-  /^\.(s?css|html?|m?js|json|ts|md|map|ico|jpe?g|png|svg|webp|woff2|txt|gitignore|gitkeep|stackblitzrc)$/;
+  /^\.(conf|gitkeep|gitignore|html?|ico|json|jpe?g|map|md|m?js|png|s?css|stackblitzrc|svg|ts|txt|webp|woff2)$/;
 // Removes all files not matching allowed extensions from given directory.
-readdirSync(join(process.cwd(), 'dist', 'docs'), {
+readdirSync(join(process.cwd(), 'dist'), {
   withFileTypes: true,
   recursive: true,
 })

@@ -1,5 +1,5 @@
 const repo = process.env.GITHUB_REPOSITORY;
-const version = process.env.RELEASE_TAG!.replace(/^v/, '');
+const version = process.env.VERSION!.replace(/^v/, '');
 const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/v${version}`);
 if (!response.ok) {
   throw new Error(`Failed to fetch release info: ${response.status} ${response.statusText}`);

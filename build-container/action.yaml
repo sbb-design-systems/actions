@@ -37,6 +37,9 @@ runs:
           echo "Installed mint:${VER}"
         fi
       shell: bash
+    - name: Remove files with forbidden extensions
+      run: node ${{ github.action_path }}/clean-dist-files.mts
+      shell: bash
     - name: Build and publish container image
       shell: bash
       run: |
