@@ -1,32 +1,44 @@
+const repo = process.env.REPO!;
 const version = process.env.RELEASE_TAG!.replace(/^v/, '');
-const response = await fetch(
-  `https://api.github.com/repos/sbb-design-systems/lyne-components/releases/tags/v${version}`,
-);
+const response = await fetch(`https://api.github.com/repos/${repo}/releases/tags/v${version}`);
 if (!response.ok) {
   throw new Error(`Failed to fetch release info: ${response.status} ${response.statusText}`);
 }
 const release = (await response.json()) as GitHubResponse;
 
+const responseRepo = await fetch(`https://api.github.com/repos/${repo}`);
+if (!response.ok) {
+  throw new Error(`Failed to fetch repo info: ${response.status} ${response.statusText}`);
+}
+const repoInfo = (await responseRepo.json()) as GitHubResponse;
+
+if (!repoInfo.homepage) {
+  throw new Error(`Failed to find field homepage in repo information`);
+}
+
 const majorVersion = version.split('.')[0];
 const isNext = version.includes('next') || version.includes('rc');
 
-let docsUrl = 'https://lyne-elements.app.sbb.ch';
+let docsUrl = repoInfo.homepage;
+const hostPrefix = new URL(repoInfo.homepage).host.split('.')[0];
 if (isNext) {
   try {
-    await fetch(`https://lyne-elements-next.app.sbb.ch`);
-    docsUrl = `https://lyne-elements-next.app.sbb.ch`;
+    const nextCandidate = repoInfo.homepage.replace(hostPrefix, `${hostPrefix}-next`);
+    await fetch(nextCandidate);
+    docsUrl = nextCandidate;
   } catch {
     // Do nothing, next deployment maybe not configured.
   }
 } else {
   try {
-    await fetch(`https://lyne-elements-v${majorVersion}.app.sbb.ch`);
-    docsUrl = `https://lyne-elements-v${majorVersion}.app.sbb.ch`;
+    const majorCandidate = repoInfo.homepage.replace(hostPrefix, `${hostPrefix}-v${majorVersion}`);
+    await fetch(majorCandidate);
+    docsUrl = majorCandidate;
   } catch {
     // Do nothing, release was on current major version.
   }
 }
-
+const ucFirst = (value: string) => value.replace(/^\w/, (m) => m.toUpperCase());
 const teamsResponse = await fetch(process.env.TEAMS_WEBHOOK!, {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -42,7 +54,7 @@ const teamsResponse = await fetch(process.env.TEAMS_WEBHOOK!, {
           body: [
             {
               type: 'TextBlock',
-              text: `🎉 Lyne Components Release ${release.name}`,
+              text: `🎉 ${repoInfo.name.split('-').map(ucFirst).join(' ')} Release ${release.name}`,
               weight: 'Bolder',
               size: 'Large',
             },
@@ -118,4 +130,5 @@ interface GitHubResponse {
   // eslint-disable-next-line @typescript-eslint/naming-convention
   html_url: string;
   name: string;
+  homepage: string;
 }

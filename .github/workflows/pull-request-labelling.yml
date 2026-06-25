@@ -28,7 +28,9 @@ jobs:
             return branches.map((b) => b.name).filter((b) => b.endsWith('.x')).map((b) => parseInt(b.split('.')[0])).sort().at(-1);
       - name: Add target label
         if: "${{ !contains(github.event.pull_request.body, 'BREAKING CHANGE:') && !contains(github.event.pull_request.labels.*.name, 'target: major') }}"
-        run: gh issue edit $PR_NUMBER --repo ${{ github.repository }} --add-label "target: ${{ steps.target-label.outputs.result }}"
+        run: |
+          gh issue edit $PR_NUMBER --repo ${{ github.repository }} --add-label "target: ${{ steps.target-label.outputs.result }}"
       - name: Remove target label
         if: "${{ contains(github.event.pull_request.body, 'BREAKING CHANGE:') || contains(github.event.pull_request.labels.*.name, 'target: major') }}"
-        run: gh issue edit $PR_NUMBER --repo ${{ github.repository }} --remove-label "target: ${{ steps.target-label.outputs.result }}"
+        run: |
+          gh issue edit $PR_NUMBER --repo ${{ github.repository }} --remove-label "target: ${{ steps.target-label.outputs.result }}"

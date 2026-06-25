@@ -17,9 +17,9 @@ jobs:
     steps:
       - uses: actions/github-script@v9
         id: branch_selection
+        env:
+          LABELS: ${{ join(github.event.pull_request.labels.*.name, '◬') }}
         with:
-          env:
-            LABELS: ${{ join(github.event.pull_request.labels.*.name, '◬') }}
           result-encoding: string
           script: |
             return JSON.stringify(process.env.LABELS.split('◬').filter((l) => l.startsWith('target:')));
@@ -72,9 +72,9 @@ jobs:
 
     steps:
       - uses: actions/github-script@v9
+        env:
+          BRANCHES: ${{ needs.backport.outputs.failed_branches }}
         with:
-          env:
-            BRANCHES: ${{ needs.backport.outputs.failed_branches }}
           script: |
             const body = `
               ⚠ Could not backport pull request into ${process.env.BRANCHES}!

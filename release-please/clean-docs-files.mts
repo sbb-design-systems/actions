@@ -4,7 +4,10 @@ import { extname, join } from 'node:path';
 const allowedExtensions =
   /^\.(s?css|html?|m?js|json|ts|md|map|ico|jpe?g|png|svg|webp|woff2|txt|gitignore|gitkeep|stackblitzrc)$/;
 // Removes all files not matching allowed extensions from given directory.
-readdirSync(join(process.cwd(), 'dist', 'docs'), { withFileTypes: true, recursive: true })
+readdirSync(join(process.cwd(), 'dist', 'docs'), {
+  withFileTypes: true,
+  recursive: true,
+})
   .filter((d) => d.isFile() && !allowedExtensions.test(extname(d.name) || d.name))
   .forEach((d) => {
     console.log(`Removing ${join(d.parentPath, d.name)}`);

@@ -36,6 +36,7 @@ runs:
         echo "Installed mint:${VER}"
       shell: bash
     - name: 'Build and publish container image'
+      shell: bash
       run: |
         echo "${{ github.token }}" | docker login ghcr.io -u $ --password-stdin
         docker build --tag ${{ env.IMAGE_REPO_DOCS }}:$TAG .
@@ -54,4 +55,3 @@ runs:
         DOCKER_BUILDKIT: 1
         TAG: ${{ inputs.tag }}
         ALIAS: ${{ inputs.alias }}
-

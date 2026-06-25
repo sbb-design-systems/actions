@@ -1,22 +1,20 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { parseArgs } from 'node:util';
+
+const currenWorkingDirectory = process.cwd();
 
 const { positionals } = parseArgs({
   allowPositionals: true,
 });
-const changelogPath = fileURLToPath(new URL('../CHANGELOG.md', import.meta.url));
-const extractPath = fileURLToPath(
-  new URL('../dist/changelog/changelog-extract.json', import.meta.url),
-);
+const changelogPath = join(currenWorkingDirectory, 'CHANGELOG.md');
+const extractPath = `/tmp/changelog-extract.json`;
 const changelog = readFileSync(changelogPath, 'utf8');
 const versionRegex = /## \[(\d+\.\d+\.\d+.*?)\]\(/g;
 
 if (positionals[0] === 'extract') {
   const latestMatch = versionRegex.exec(changelog);
   const previousMatch = versionRegex.exec(changelog);
-  mkdirSync(dirname(extractPath), { recursive: true });
   console.log(`Extracting changelog for version ${latestMatch![1]}...`);
   writeFileSync(
     extractPath,
