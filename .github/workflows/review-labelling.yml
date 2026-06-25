@@ -3,9 +3,6 @@ description: Add or remove labels related to reviews
 
 on:
   workflow_call:
-    secrets:
-      GITHUB_TOKEN:
-        required: true
 
 env:
   PEER_REQUIRED: 'pr: peer review required'

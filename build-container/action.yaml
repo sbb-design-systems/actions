@@ -27,15 +27,17 @@ runs:
         mkdir -p "$HOME/.local/bin"
         cd "$HOME/.local/bin"
 
-        # Get the current released tag_name
-        VER=$(curl -sL https://api.github.com/repos/mintoolkit/mint/releases \
-          | grep tag_name | head -n1 | cut -d'"' -f4)
-        curl -L -o mint.tar.gz "https://github.com/mintoolkit/mint/releases/download/${VER}/dist_linux.tar.gz"
-        tar -xvf mint.tar.gz --strip-components 1
+        if [[ ! -f mint ]]; then
+          # Get the current released tag_name
+          VER=$(curl -sL https://api.github.com/repos/mintoolkit/mint/releases \
+            | grep tag_name | head -n1 | cut -d'"' -f4)
+          curl -L -o mint.tar.gz "https://github.com/mintoolkit/mint/releases/download/${VER}/dist_linux.tar.gz"
+          tar -xvf mint.tar.gz --strip-components 1
 
-        echo "Installed mint:${VER}"
+          echo "Installed mint:${VER}"
+        fi
       shell: bash
-    - name: 'Build and publish container image'
+    - name: Build and publish container image
       shell: bash
       run: |
         echo "${{ github.token }}" | docker login ghcr.io -u $ --password-stdin

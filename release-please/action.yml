@@ -5,7 +5,6 @@ inputs:
     required: true
   dev-packages:
     type: boolean
-    default: false
 
 # Documentation:
 # https://github.com/googleapis/release-please

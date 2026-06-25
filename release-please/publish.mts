@@ -1,13 +1,12 @@
 import { execSync } from 'node:child_process';
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 
 const gitRefName = process.env.GITHUB_REF_NAME?.trim() || '';
 const releaseVersion = process.env.VERSION?.trim() || null;
 const publishDevPackages = process.env.DEV_PACKAGES === 'true';
 const dryRun = !process.env.CI;
-const distDir = fileURLToPath(new URL('../dist/', import.meta.url));
+const distDir = join(process.cwd(), 'dist');
 
 interface PackageJson {
   name: string;
