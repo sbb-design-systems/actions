@@ -1,0 +1,92 @@
+name: Build Secure
+inputs:
+  artifact-token:
+    type: string
+    required: true
+
+# Secure execution of continuous integration jobs
+# which are performed upon completion of the
+# "Continuous Integration" workflow
+# https://securitylab.github.com/research/github-actions-preventing-pwn-requests/
+
+runs:
+  using: 'composite'
+  steps:
+    - uses: actions/checkout@v7
+    - uses: actions/setup-node@v6
+      with:
+        node-version-file: .nvmrc
+        cache: yarn
+    - run: yarn install --frozen-lockfile --non-interactive
+      shell: bash
+
+    - uses: actions/download-artifact@v8
+      with:
+        name: docs
+        path: dist/docs/
+        run-id: ${{ github.event.workflow_run.id }}
+        github-token: ${{ inputs.artifact-token }}
+
+    - name: Prepare configuration for container build
+      run: yarn prepare-container
+      shell: bash
+
+    - name: Create size check
+      uses: actions/github-script@v9
+      with:
+        script: |
+          const { title, summary, text } = await import('${{ github.action_path }}/compare-stats.ts');
+
+          await github.rest.checks.create({
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            name: 'Size Check',
+            head_sha: context.payload.workflow_run.head_sha,
+            output: { title, summary, text },
+            status: 'completed',
+            conclusion: 'success',
+          });
+
+    - name: Read Pull Request Number
+      id: pr-number
+      uses: actions/github-script@v9
+      with:
+        result-encoding: string
+        script: |
+          const fs = await import('fs');
+          const path = `${process.cwd()}/dist/docs/pr`;
+          return fs.readFileSync(path, 'utf-8').trim();
+
+    - name: Create GitHub Deployment
+      uses: actions/github-script@v9
+      env:
+        PR_NUMBER: ${{ steps.pr-number.outputs.result }}
+      with:
+        script: |
+          const environment = `pr${process.env.PR_NUMBER}`;
+          const payload = { owner: context.repo.owner, repo: context.repo.repo, environment };
+          const { data: deployment } = await github.rest.repos.createDeployment({
+            ...payload,
+            ref: context.payload.workflow_run.head_sha,
+            auto_merge: false,
+            required_contexts: ['build']
+          });
+          await github.rest.repos.createDeploymentStatus({
+            ...payload,
+            deployment_id: deployment.id,
+            state: 'in_progress',
+            environment_url: `https://${context.repo.repo}-${environment}.app.sbb.ch`,
+          });
+
+    - uses: ./build-container
+      with:
+        repository: ghcr.io/${{ github.repository }}/docs-preview
+        tag: pr${{ steps.pr-number.outputs.result }}
+
+    - name: "Add 'preview-available' label"
+      # This label is used for filtering deployments in ArgoCD
+      run: gh issue edit $PR_NUMBER --add-label "preview-available"
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        PR_NUMBER: ${{ steps.pr-number.outputs.result }}
+      shell: bash
