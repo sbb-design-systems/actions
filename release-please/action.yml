@@ -110,7 +110,6 @@ runs:
       env:
         RELEASE_TAG: ${{ steps.release.outputs.version }}
         TEAMS_WEBHOOK: ${{ inputs.teams-webhook }}
-        REPO: ${{ github.repository }}
 
     - name: Apply CHANGELOG.md into ${{ github.event.repository.default_branch }}
       if: ${{ steps.release.outputs.release_created && github.ref_name != 'main' }}
