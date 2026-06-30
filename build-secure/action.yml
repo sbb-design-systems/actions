@@ -83,7 +83,7 @@ runs:
             environment_url: `https://${context.repo.repo}-${environment}.app.sbb.ch`,
           });
 
-    - uses: ./build-container
+    - uses: sbb-design-systems/actions/build-container@main
       with:
         repository: docs-preview
         tag: pr${{ steps.pr-number.outputs.result }}

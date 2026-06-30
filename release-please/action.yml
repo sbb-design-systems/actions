@@ -85,7 +85,7 @@ runs:
           const currentMajor = parseInt(version.split('.')[0]);
           return currentMajor >= latestMajor ? 'latest' : '';
 
-    - uses: ./build-container
+    - uses: sbb-design-systems/actions/build-container@main
       if: ${{ steps.release.outputs.release_created }}
       with:
         repository: docs
