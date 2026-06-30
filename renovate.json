@@ -1,0 +1,24 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommitTypeAll(chore)"],
+  "ignorePaths": ["**/node_modules/**"],
+  "nodenv": {
+    "enabled": false
+  },
+  "nvm": {
+    "enabled": false
+  },
+  "baseBranchPatterns": ["main"],
+  "lockFileMaintenance": {
+    "schedule": ["before 7am on monday"],
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest", "lockFileMaintenance", "bump"],
+      "automerge": true,
+      "automergeType": "branch",
+      "automergeStrategy": "squash"
+    }
+  ]
+}
