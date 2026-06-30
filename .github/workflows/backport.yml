@@ -20,6 +20,7 @@ jobs:
             return JSON.stringify(process.env.LABELS.split('◬').filter((l) => l.startsWith('target:')));
 
   backport:
+    needs: selection
     runs-on: ubuntu-slim
     outputs:
       failed_branches: ${{ steps.update_failed_branches.outputs.failed_branches }}

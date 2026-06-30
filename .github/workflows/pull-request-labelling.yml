@@ -26,7 +26,8 @@ jobs:
               repo: context.repo.repo,
               protected: true,
             });
-            return branches.map((b) => b.name).filter((b) => b.endsWith('.x')).map((b) => parseInt(b.split('.')[0])).sort().at(-1);
+            const version = branches.map((b) => b.name).filter((b) => b.endsWith('.x')).map((b) => parseInt(b.split('.')[0])).sort().at(-1);
+            return `${version}.x`;
       - name: Add target label
         if: "${{ !contains(github.event.pull_request.body, 'BREAKING CHANGE:') && !contains(github.event.pull_request.labels.*.name, 'target: major') }}"
         run: |
