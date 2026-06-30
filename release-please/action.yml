@@ -1,5 +1,8 @@
 name: Release Please
 inputs:
+  app-token:
+    type: string
+    required: true
   teams-webhook:
     type: string
     required: true
@@ -30,16 +33,10 @@ runs:
       env:
         VERSION: ${{ steps.release.outputs.version }}
 
-    - name: Create token
-      id: token
-      uses: actions/create-github-app-token@v3
-      with:
-        client-id: ${{ secrets.client-id }}
-        private-key: ${{ secrets.private-key }}
     - uses: actions/checkout@v7
       with:
         fetch-depth: 0
-        token: ${{ steps.token.outputs.token }}
+        token: ${{ inputs.app-token }}
     - uses: actions/setup-node@v6
       with:
         node-version-file: .nvmrc
@@ -56,7 +53,7 @@ runs:
         VERSION: ${{ steps.version.outputs.version }}
 
     - name: Publish packages
-      run: node ${{ github.action_path }}/publish.mts
+      run: node ${{ github.action_path }}/publish.ts
       shell: bash
       env:
         VERSION: ${{ steps.release.outputs.version }}
@@ -91,7 +88,7 @@ runs:
     - uses: ./build-container
       if: ${{ steps.release.outputs.release_created }}
       with:
-        repository: ghcr.io/${{ github.repository }}/docs
+        repository: docs
         tag: ${{ steps.release.outputs.version }}
         alias: ${{ steps.container-alias.outputs.result }}
 

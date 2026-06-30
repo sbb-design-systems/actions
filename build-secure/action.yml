@@ -1,6 +1,6 @@
 name: Build Secure
 inputs:
-  artifact-token:
+  app-token:
     type: string
     required: true
 
@@ -25,7 +25,7 @@ runs:
         name: docs
         path: dist/docs/
         run-id: ${{ github.event.workflow_run.id }}
-        github-token: ${{ inputs.artifact-token }}
+        github-token: ${{ inputs.app-token }}
 
     - name: Prepare configuration for container build
       run: yarn prepare-container
@@ -49,13 +49,18 @@ runs:
 
     - name: Read Pull Request Number
       id: pr-number
-      uses: actions/github-script@v9
-      with:
-        result-encoding: string
-        script: |
-          const fs = await import('fs');
-          const path = `${process.cwd()}/dist/docs/pr`;
-          return fs.readFileSync(path, 'utf-8').trim();
+      run: echo "result=$(cat dist/docs/pr)" >> "$GITHUB_OUTPUT"
+      shell: bash
+
+    - name: "Remove 'preview-available' label"
+      # This label is used for filtering deployments in ArgoCD.
+      # At the start of the workflow, we remove the container available labels
+      # which will be re-added after the Secure workflow.
+      run: gh issue edit $PR_NUMBER --repo ${{ github.repository }} --remove-label "preview-available"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PR_NUMBER: ${{ steps.pr-number.outputs.result }}
+      shell: bash
 
     - name: Create GitHub Deployment
       uses: actions/github-script@v9
@@ -80,13 +85,13 @@ runs:
 
     - uses: ./build-container
       with:
-        repository: ghcr.io/${{ github.repository }}/docs-preview
+        repository: docs-preview
         tag: pr${{ steps.pr-number.outputs.result }}
 
     - name: "Add 'preview-available' label"
       # This label is used for filtering deployments in ArgoCD
       run: gh issue edit $PR_NUMBER --add-label "preview-available"
       env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ github.token }}
         PR_NUMBER: ${{ steps.pr-number.outputs.result }}
       shell: bash

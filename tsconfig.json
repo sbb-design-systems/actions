@@ -9,5 +9,5 @@
     "erasableSyntaxOnly": true,
     "rewriteRelativeImportExtensions": true
   },
-  "include": ["**/*.ts", "**/*.mts"]
+  "include": ["**/*.ts"]
 }

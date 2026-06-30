@@ -1,6 +1,10 @@
 name: Review Labelling
 description: Add or remove labels related to reviews
 
+###
+# ATTENTION: Due to security reasons, this workflow must never checkout code!
+###
+
 on:
   workflow_call:
 
@@ -11,7 +15,7 @@ env:
   LEAD_APPROVED: 'pr: lead review approved'
   UX_REQUIRED: 'pr: ux review required'
   UX_APPROVED: 'pr: ux review approved'
-  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  GH_TOKEN: ${{ github.token }}
 
 jobs:
   # Workaround for the limitation of being unable to use env in job if block.

@@ -8,6 +8,9 @@ inputs:
     required: true
   alias:
     type: string
+  containerfile:
+    type: string
+    default: Containerfile
 
 runs:
   using: composite
@@ -38,25 +41,27 @@ runs:
         fi
       shell: bash
     - name: Remove files with forbidden extensions
-      run: node ${{ github.action_path }}/clean-dist-files.mts
+      run: node ${{ github.action_path }}/clean-dist-files.ts
       shell: bash
     - name: Build and publish container image
       shell: bash
       run: |
         echo "${{ github.token }}" | docker login ghcr.io -u $ --password-stdin
-        docker build --tag ${{ env.IMAGE_REPO_DOCS }}:$TAG .
+        docker build --file $CONTAINERFILE --tag $IMAGE_REPO:$TAG .
         mint slim \
-          --target ${{ env.IMAGE_REPO_DOCS }}:$TAG \
-          --tag ${{ env.IMAGE_REPO_DOCS }}:$TAG \
+          --target $IMAGE_REPO:$TAG \
+          --tag $IMAGE_REPO:$TAG \
           --preserve-path /usr/share/nginx/html \
           --include-new false
-        docker push ${{ env.IMAGE_REPO_DOCS }}:$TAG
+        docker push $IMAGE_REPO:$TAG
         if [[ $ALIAS != "" ]]; then
-          docker tag ${{ env.IMAGE_REPO_DOCS }}:$TAG ${{ env.IMAGE_REPO_DOCS }}:$ALIAS
-          docker push ${{ env.IMAGE_REPO_DOCS }}:$ALIAS
+          docker tag $IMAGE_REPO:$TAG $IMAGE_REPO:$ALIAS
+          docker push $IMAGE_REPO:$ALIAS
         fi
         docker image list
       env:
         DOCKER_BUILDKIT: 1
         TAG: ${{ inputs.tag }}
         ALIAS: ${{ inputs.alias }}
+        CONTAINERFILE: ${{ inputs.containerfile }}
+        IMAGE_REPO: ghcr.io/${{ github.repository }}/${{ inputs.repository }}
