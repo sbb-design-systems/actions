@@ -8,6 +8,8 @@ inputs:
     required: true
   dev-packages:
     type: boolean
+  update-lyne:
+    type: boolean
 
 # Documentation:
 # https://github.com/googleapis/release-please
@@ -44,6 +46,12 @@ runs:
         registry-url: 'https://registry.npmjs.org'
         scope: sbb-esta
     - run: yarn install --frozen-lockfile --non-interactive
+      shell: bash
+
+    - name: 'Upgrade @sbb-esta/* dependencies for exact release version'
+      if: ${{ inputs.include-update-lyne && steps.release.outputs.release_created }}
+      run: |
+        yarn update-lyne:upgrade
       shell: bash
 
     - name: Run build
