@@ -17,7 +17,7 @@ jobs:
               repo,
             });
 
-            for (const cache of caches) {
+            for (const cache of caches.actions_caches) {
               try {
                 await github.rest.actions.deleteActionsCacheById({
                     owner,
