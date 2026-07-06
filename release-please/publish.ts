@@ -24,7 +24,7 @@ if (!gitRefName) {
 
 const packages = readdirSync(distDir, { withFileTypes: true, recursive: true })
   .filter((d) => {
-    if (d.name === 'package.json') {
+    if (d.name === 'package.json' && !d.parentPath.includes('stackblitz')) {
       try {
         const packageContent = readFileSync(join(d.parentPath, d.name), 'utf-8');
         const pkg = JSON.parse(packageContent) as PackageJson;
