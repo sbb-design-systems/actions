@@ -21,8 +21,20 @@ if (!gitRefName) {
 }
 
 const packages = readdirSync(distDir, { withFileTypes: true, recursive: true })
-  .filter((d) => d.name === 'package.json')
+  .filter((d) => {
+    if (d.name === 'package.json') {
+      try {
+        const packageContent = readFileSync(join(d.parentPath, d.name), 'utf-8');
+        const pkg = JSON.parse(packageContent) as PackageJson;
+        return 'name' in pkg && 'version' in pkg;
+      } catch (e) {
+        console.error(`Failed to read package.json in ${d.parentPath}: ${e}`);
+      }
+    }
+    return false;
+  })
   .map((d) => join(d.parentPath, d.name));
+
 const publish = (packagePath: string, pkg: PackageJson, tag: string): void => {
   console.log(`Publishing ${pkg.name} with version ${pkg.version} to npm with tag ${tag}`);
   execSync(`npm publish --tag ${tag}${dryRun ? ' --dry-run' : ''}`, {
