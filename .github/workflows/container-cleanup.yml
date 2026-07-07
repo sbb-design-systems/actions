@@ -82,6 +82,6 @@ jobs:
     steps:
       - uses: actions/delete-package-versions@v5
         with:
-          package-name: lyne-components/${{ matrix.repo }}
+          package-name: ${{github.event.repository.name}}/${{ matrix.repo }}
           package-type: container
           delete-only-untagged-versions: 'true'
