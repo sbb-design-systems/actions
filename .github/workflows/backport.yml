@@ -22,6 +22,7 @@ jobs:
   backport:
     needs: selection
     runs-on: ubuntu-slim
+    if: needs.selection.outputs.branches != '[]'
     outputs:
       failed_branches: ${{ steps.update_failed_branches.outputs.failed_branches }}
     strategy:
