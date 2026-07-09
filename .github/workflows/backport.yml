@@ -80,7 +80,7 @@ jobs:
               [ ] Completed
             `;
             github.rest.issues.createComment({
-              issue_number: github.event.number,
+              issue_number: github.event.pull_request.number,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body
