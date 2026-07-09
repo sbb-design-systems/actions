@@ -51,6 +51,7 @@ jobs:
         if: steps.branch_name.outputs.branch
         run: |
           git checkout ${{ steps.branch_name.outputs.branch }}
+          git pull
           git -c user.name="github-actions" -c user.email="github-actions@github.com" cherry-pick ${{ github.sha }}
           git push
 
