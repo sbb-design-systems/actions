@@ -51,6 +51,7 @@ runs:
         mint slim \
           --target $IMAGE_REPO:$TAG \
           --tag $IMAGE_REPO:$TAG \
+          --preserve-path /usr/lib/nginx/modules/ngx_http_js_module.so \
           --preserve-path /usr/share/nginx/html \
           --include-new false
         docker push $IMAGE_REPO:$TAG
