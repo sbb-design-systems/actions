@@ -39,20 +39,29 @@ runs:
       with:
         fetch-depth: 0
         token: ${{ inputs.app-token }}
-    - uses: actions/setup-node@v6
+    - uses: actions/setup-node@v7
       with:
         node-version-file: .nvmrc
         cache: yarn
         registry-url: 'https://registry.npmjs.org'
         scope: sbb-esta
+      env:
+        # Due to a bug in setup-node@v7, we need to set this env variable to an empty string to avoid failing the step.
+        NODE_AUTH_TOKEN: ''
     - run: yarn install --frozen-lockfile --non-interactive
       shell: bash
+      env:
+        # Due to a bug in setup-node@v7, we need to set this env variable to an empty string to avoid failing the step.
+        NODE_AUTH_TOKEN: ''
 
     - name: 'Upgrade @sbb-esta/* dependencies for exact release version'
       if: ${{ inputs.update-lyne && steps.release.outputs.release_created }}
       run: |
         yarn update-lyne:upgrade
       shell: bash
+      env:
+        # Due to a bug in setup-node@v7, we need to set this env variable to an empty string to avoid failing the step.
+        NODE_AUTH_TOKEN: ''
 
     - name: Run build
       run: yarn build
@@ -66,6 +75,8 @@ runs:
       env:
         VERSION: ${{ steps.release.outputs.version }}
         DEV_PACKAGES: ${{ inputs.dev-packages }}
+        # Due to a bug in setup-node@v7, we need to set this env variable to an empty string to avoid failing the step.
+        NODE_AUTH_TOKEN: ''
 
     - uses: actions/github-script@v9
       if: ${{ steps.release.outputs.release_created }}
