@@ -6,7 +6,7 @@
   "devDependencies": {
     "@types/node": "26.0.1",
     "typescript": "6.0.3",
-    "prettier": "3.8.4"
+    "prettier": "3.9.6"
   },
   "prettier": {
     "singleQuote": true,
