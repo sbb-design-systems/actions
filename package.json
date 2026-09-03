@@ -4,7 +4,7 @@
     "format": "prettier . --write --ignore-unknown"
   },
   "devDependencies": {
-    "@types/node": "26.0.1",
+    "@types/node": "26.4.1",
     "typescript": "6.0.3",
     "prettier": "3.9.6"
   },
