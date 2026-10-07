@@ -69,6 +69,21 @@ jobs:
       needs.backport.outputs.failed_branches
 
     steps:
+      - name: Debug issue permission
+        uses: actions/github-script@v9
+        with:
+          script: |
+            try {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body: 'permission test'
+              });
+              console.log('✅ issues:write works');
+            } catch (e) {
+              console.log(`❌ issues:write does NOT work: ${e.status} ${e.message}`);
+            }
       - uses: actions/github-script@v9
         env:
           BRANCHES: ${{ needs.backport.outputs.failed_branches }}
