@@ -18,7 +18,7 @@ if (!gitRefName) {
   throw new Error('GITHUB_REF_NAME environment variable is not set');
 } else if (dryRun) {
   console.log('Running in dry-run mode. No packages will be published to npm.');
-} else if(!releaseVersion && !publishDevPackages) {
+} else if (!releaseVersion && !publishDevPackages) {
   process.exit(0); // Nothing to do, exit early
 }
 
