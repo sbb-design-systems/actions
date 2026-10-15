@@ -1,7 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "format": "prettier . --write --ignore-unknown"
+    "format": "prettier . --write --ignore-unknown",
+    "test": "node --test"
   },
   "devDependencies": {
     "@types/node": "26.6.5",
