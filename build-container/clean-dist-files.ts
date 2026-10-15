@@ -9,7 +9,7 @@ readdirSync(join(process.cwd(), 'dist'), {
   withFileTypes: true,
   recursive: true,
 })
-  .filter((d) => !d.isFile() || !isValidFile(d))
+  .filter((d) => d.isFile() && !isValidFile(d))
   .forEach((d) => {
     console.log(`Removing ${join(d.parentPath, d.name)}`);
     unlinkSync(join(d.parentPath, d.name));
